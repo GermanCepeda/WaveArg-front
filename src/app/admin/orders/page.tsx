@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PedidosService, Pedido, PedidoItem } from "@/lib/api";
-import { ESTADOS_PEDIDO, estadoClase, estadoLabel, requiereAtencion } from "@/lib/pedidos";
+import { ESTADOS_PEDIDO, estadoClase, estadoLabel, mostrarDespachado, requiereAtencion } from "@/lib/pedidos";
 import {
   Package,
   AlertCircle,
@@ -289,6 +289,14 @@ export default function OrdersPage() {
                       transiciones={pedido.transicionesPermitidas ?? []}
                       onUpdated={handleEstadoUpdated}
                     />
+                    {mostrarDespachado(pedido) && (
+                      <p
+                        className="mt-1 text-[10px] font-semibold text-blue-800"
+                        title={pedido.despachadoEn ? `Despachado el ${formatFecha(pedido.despachadoEn)}` : undefined}
+                      >
+                        Ya despachado: no devuelve stock
+                      </p>
+                    )}
                   </td>
                 </tr>
               ))}

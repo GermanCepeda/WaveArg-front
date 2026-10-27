@@ -2,6 +2,8 @@
 // La máquina de estados (transiciones válidas y quién las dispara) está en
 // WAVEARGDEFINITIVO/docs/pedidos-estados.md. Las transiciones manuales permitidas para cada
 // pedido las manda el backend en `transicionesPermitidas`; el front no las recalcula.
+import type { Pedido } from "@/lib/api";
+
 export const ESTADOS_PEDIDO = [
   "Pendiente",
   "Pagado",
@@ -56,4 +58,11 @@ export function esPedidoActivo(estado: string): boolean {
 export function requiereAtencion(estado: string): boolean {
   const normalizado = normalizarEstado(estado);
   return normalizado === "RequiereRevision" || normalizado === "Sobreventa";
+}
+
+// Aviso de "ya despachado" en el panel: hace falta cuando el estado no lo dice (p. ej. un pedido
+// enviado que pasó a RequiereRevision o se reembolsó). Ese pedido no devuelve stock.
+export function mostrarDespachado(pedido: Pick<Pedido, "estado" | "despachado">): boolean {
+  const normalizado = normalizarEstado(pedido.estado);
+  return !!pedido.despachado && normalizado !== "Enviado" && normalizado !== "Entregado";
 }

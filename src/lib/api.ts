@@ -441,6 +441,9 @@ export interface Pedido {
   estado: EstadoPedido;
   /** Transiciones manuales que el admin puede hacer (solo en los endpoints de admin). */
   transicionesPermitidas?: EstadoPedido[];
+  /** La mercadería ya salió (solo admin). No depende de `estado`: sigue en true si después pasa a revisión. */
+  despachado?: boolean;
+  despachadoEn?: string | null;
   fecha: string;
   items: PedidoItem[];
   mercadoPagoId?: string;
