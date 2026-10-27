@@ -6,6 +6,7 @@ import {
   estadoLabel,
   normalizarEstado,
   requiereAtencion,
+  mostrarDespachado,
 } from "@/lib/pedidos";
 
 describe("estados de pedido", () => {
@@ -53,5 +54,13 @@ describe("estados de pedido", () => {
 
   it("solo RequiereRevision y Sobreventa requieren atención del admin", () => {
     expect(ESTADOS_PEDIDO.filter(requiereAtencion)).toEqual(["RequiereRevision", "Sobreventa"]);
+  });
+
+  it("avisa que está despachado sólo cuando el estado no lo dice", () => {
+    expect(mostrarDespachado({ estado: "RequiereRevision", despachado: true })).toBe(true);
+    expect(mostrarDespachado({ estado: "Reembolsado", despachado: true })).toBe(true);
+    expect(mostrarDespachado({ estado: "Enviado", despachado: true })).toBe(false);
+    expect(mostrarDespachado({ estado: "RequiereRevision", despachado: false })).toBe(false);
+    expect(mostrarDespachado({ estado: "RequiereRevision" })).toBe(false);
   });
 });
