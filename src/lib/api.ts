@@ -416,9 +416,17 @@ export interface PagoSinConciliar {
   fecha: string;
 }
 
+// Cómo lo atendió el admin en MercadoPago: entregó lo cobrado o devolvió la plata.
+export type ResolucionPagoSinConciliar = "Cumplido" | "Reembolsado";
+
 export const AdminService = {
   getDashboard: () => fetchFromApi<DashboardMetrics>("/Admin/dashboard"),
   getPagosSinConciliar: () => fetchFromApi<PagoSinConciliar[]>("/Admin/pagos-sin-conciliar"),
+  resolverPagoSinConciliar: (id: number, resolucion: ResolucionPagoSinConciliar) =>
+    fetchFromApi<{ id: number; resolucion: ResolucionPagoSinConciliar; resueltoEn: string }>(
+      `/Admin/pagos-sin-conciliar/${id}/resolver`,
+      { method: "POST", body: JSON.stringify({ resolucion }) },
+    ),
 };
 
 // --- Pedidos ---

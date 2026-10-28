@@ -1,14 +1,85 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AdminService, PagoSinConciliar } from "@/lib/api";
+import { AdminService, PagoSinConciliar, ResolucionPagoSinConciliar } from "@/lib/api";
 import { estadoClase, estadoLabel } from "@/lib/pedidos";
 import { formatearPrecio } from "@/lib/precio";
-import { AlertCircle, CheckCircle2, RefreshCw } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Pagos aprobados que el pedido no absorbió (ya estaba en revisión, sobrevendido, reembolsado o
-// contracargado). El pedido no cambia: se resuelven en MercadoPago, normalmente reembolsando el pago.
+// contracargado). El pedido no cambia: se atienden en MercadoPago, normalmente reembolsando el pago,
+// y después se marcan acá como resueltos para sacarlos de la lista.
 // Ver WAVEARGDEFINITIVO/docs/pedidos-estados.md, "Pagos sin conciliar".
+
+const CONFIRMACIONES: Record<ResolucionPagoSinConciliar, string> = {
+  Cumplido: "Entregaste lo que se cobró.",
+  Reembolsado: "Ya devolviste la plata en MercadoPago.",
+};
+
+// No se puede deshacer, por eso pide confirmación.
+function ResolverPago({ pagoId, onResuelto }: { pagoId: number; onResuelto: () => void }) {
+  const [aConfirmar, setAConfirmar] = useState<ResolucionPagoSinConciliar | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function resolver(resolucion: ResolucionPagoSinConciliar) {
+    setAConfirmar(null);
+    setLoading(true);
+    setError(null);
+    try {
+      await AdminService.resolverPagoSinConciliar(pagoId, resolucion);
+      onResuelto();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) return <Loader2 size={16} strokeWidth={1.75} className="animate-spin text-blue-500" />;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex gap-1.5">
+        {(Object.keys(CONFIRMACIONES) as ResolucionPagoSinConciliar[]).map((r) => (
+          <button
+            key={r}
+            onClick={() => setAConfirmar(r)}
+            className="px-2 py-1 rounded-lg border border-gray-200 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 transition"
+          >
+            {r}
+          </button>
+        ))}
+      </div>
+      {error && <p className="text-[10px] text-red-500 max-w-[180px]">{error}</p>}
+
+      <AlertDialog open={aConfirmar !== null} onOpenChange={(open) => !open && setAConfirmar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Marcar el pago como {aConfirmar?.toLowerCase()}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {aConfirmar && CONFIRMACIONES[aConfirmar]} Sale de la lista y no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => aConfirmar && resolver(aConfirmar)}>Confirmar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
 
 function formatFecha(iso: string) {
   return new Date(iso).toLocaleDateString("es-AR", {
@@ -60,7 +131,7 @@ export default function PagosSinConciliarPage() {
         <div>
           <h1 className="text-2xl font-bold text-color-principal">Pagos sin conciliar</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Plata cobrada que ningún pedido absorbió. Resolvelos en MercadoPago (normalmente reembolsando el pago).
+            Plata cobrada que ningún pedido absorbió. Atendelos en MercadoPago (normalmente reembolsando el pago) y marcalos como resueltos.
           </p>
         </div>
 
@@ -103,6 +174,7 @@ export default function PagosSinConciliarPage() {
                 <th className="py-3 px-4 text-left">Monto</th>
                 <th className="py-3 px-4 text-left">Motivo</th>
                 <th className="py-3 px-4 text-left">Fecha</th>
+                <th className="py-3 px-4 text-left">Resolver</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -118,6 +190,9 @@ export default function PagosSinConciliarPage() {
                   <td className="py-3 px-4 font-semibold text-gray-800">{formatMonto(pago)}</td>
                   <td className="py-3 px-4 text-gray-600 text-xs max-w-[320px]">{pago.motivo}</td>
                   <td className="py-3 px-4 text-gray-500 text-xs">{formatFecha(pago.fecha)}</td>
+                  <td className="py-3 px-4">
+                    <ResolverPago pagoId={pago.id} onResuelto={cargarPagos} />
+                  </td>
                 </tr>
               ))}
             </tbody>
