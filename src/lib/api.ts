@@ -152,12 +152,10 @@ export async function fetchFromApi<T>(
         rawText ||
         `Error ${res.status}: ${res.statusText}`;
 
-      // Si hay errores de validación de campo, los concatenamos
+      // Errores de validación de campo: los mensajes del back ya dicen qué campo falló
+      // ("El precio tiene que ser mayor a 0."), así que reemplazan al título genérico.
       if (errorData.errors && typeof errorData.errors === "object") {
-        const detalles = Object.entries(errorData.errors)
-          .map(([campo, msgs]) => `${campo}: ${(msgs as string[]).join(", ")}`)
-          .join(" | ");
-        errorMessage = `${errorMessage} → ${detalles}`;
+        errorMessage = Object.values(errorData.errors).flat().join(" ") || errorMessage;
       }
 
       throw new ApiError(errorMessage, res.status, errorData);
