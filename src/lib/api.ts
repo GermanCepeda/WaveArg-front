@@ -404,8 +404,21 @@ export interface DashboardMetrics {
   stockTotal: number;
 }
 
+// Pago aprobado que el pedido no absorbió (WAVEARGDEFINITIVO/docs/pedidos-estados.md, "Pagos sin conciliar").
+export interface PagoSinConciliar {
+  id: number;
+  pedidoId: number;
+  estadoPedido: EstadoPedido;
+  mercadoPagoPaymentId: number;
+  monto: number | null;
+  moneda: string | null;
+  motivo: string;
+  fecha: string;
+}
+
 export const AdminService = {
   getDashboard: () => fetchFromApi<DashboardMetrics>("/Admin/dashboard"),
+  getPagosSinConciliar: () => fetchFromApi<PagoSinConciliar[]>("/Admin/pagos-sin-conciliar"),
 };
 
 // --- Pedidos ---

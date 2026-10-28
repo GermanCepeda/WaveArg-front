@@ -3,13 +3,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Home, ShoppingBag, Package, Users, X } from "lucide-react";
+import { Home, ShoppingBag, Package, Users, Wallet, X } from "lucide-react";
 
 const navLinks = [
   { name: "Dashboard", href: "/admin", icon: Home },
   { name: "Productos", href: "/admin/productos", icon: ShoppingBag },
   { name: "Accesorios", href: "/admin/accesorios", icon: Package },
   { name: "Pedidos", href: "/admin/orders", icon: Package },
+  { name: "Pagos sin conciliar", href: "/admin/pagos", icon: Wallet },
   { name: "Usuarios", href: "/admin/users", icon: Users },
 ];
 
