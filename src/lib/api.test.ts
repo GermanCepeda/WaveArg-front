@@ -132,3 +132,42 @@ describe("edición de stock desde el admin (api.ts)", () => {
     expect(stockActualSiCambio(new Error("red"))).toBeNull();
   });
 });
+
+describe("errores de validación del back (api.ts)", () => {
+  beforeEach(() => {
+    fetchMock.mockReset();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  // #28: el 400 de validación del back trae el mensaje por campo; el admin ve ese, no el título genérico.
+  it("un precio o stock inválido llega con el mensaje del back", async () => {
+    fetchMock.mockResolvedValue(
+      respuesta(400, {
+        title: "One or more validation errors occurred.",
+        status: 400,
+        errors: { Precio: ["El precio tiene que ser mayor a 0."], Stock: ["El stock no puede ser negativo."] },
+      }),
+    );
+
+    const error = await VariantesService.create({
+      productoId: 1,
+      color: "Negro",
+      memoria: "128GB",
+      precio: 0,
+      stock: -1,
+      esUsado: false,
+      detalleEstado: "Nuevo",
+      fotoEstadoUrl: "",
+      imagenes: [],
+    }).catch((e: unknown) => e);
+
+    expect(error).toMatchObject({
+      status: 400,
+      message: "El precio tiene que ser mayor a 0. El stock no puede ser negativo.",
+    });
+  });
+});
