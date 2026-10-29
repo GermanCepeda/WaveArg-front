@@ -3,6 +3,7 @@ import { Producto, Variante, CreateProductoDTO, ImagenDetalle } from "@/interfac
 export type { ImagenDetalle };
 import { LoginDTO, RegisterDTO, AuthResponse } from "@/interfaces/auth";
 import { useAuthStore } from "@/store/useAuthStore";
+import { API_PROXY_BASE } from "@/lib/backend";
 import { Accesorio, AccesorioVariante, AccesorioImagenDetalle, CategoriaAccesorio, CATEGORIA_LABELS, CreateAccesorioDTO } from "@/interfaces/accesorio";
 
 // Re-export for convenience
@@ -68,8 +69,7 @@ export interface CreateAccesorioVarianteDTO {
   imagenes: string[];
 }
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_PROXY_BASE ?? "/api/backend";
+const API_BASE = API_PROXY_BASE;
 
 /**
  * Error de la API con el status y el cuerpo de la respuesta, para los casos que el front

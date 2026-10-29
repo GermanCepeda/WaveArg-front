@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { reportarError } from "@/lib/reportar-error";
 
 export default function AdminError({
   error,
@@ -11,6 +12,8 @@ export default function AdminError({
 }) {
   useEffect(() => {
     console.error(error);
+    // Con digest, el error vino del servidor y ya lo reportó instrumentation.ts (#7).
+    if (!error.digest) reportarError("navegador", error, { url: window.location.pathname });
   }, [error]);
 
   return (

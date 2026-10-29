@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import nextConfig from "../next.config";
 
 async function cabecerasDeTodasLasRutas(): Promise<Record<string, string>> {
@@ -37,5 +37,31 @@ describe("headers de seguridad (next.config)", () => {
     expect(d["frame-src"]).toContain("https://accounts.google.com/");
     expect(d["frame-ancestors"]).toEqual(["'none'"]);
     expect(d["object-src"]).toEqual(["'none'"]);
+  });
+});
+
+// #7: sin el secreto, el webhook de MP respondería 500 a todo. Mejor que falle el deploy (Vercel avisa y
+// sigue sirviendo el anterior) que publicar un sitio que no registra pagos.
+describe("deploy de producción en Vercel (next.config)", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  async function cargarConfig(env: Record<string, string>) {
+    vi.resetModules();
+    for (const [clave, valor] of Object.entries(env)) vi.stubEnv(clave, valor);
+    return import("../next.config");
+  }
+
+  it("sin MERCADOPAGO_WEBHOOK_SECRET falla el build", async () => {
+    await expect(cargarConfig({ VERCEL_ENV: "production", MERCADOPAGO_WEBHOOK_SECRET: "" })).rejects.toThrow(
+      /MERCADOPAGO_WEBHOOK_SECRET/,
+    );
+  });
+
+  it("con el secreto, o fuera de producción (previews, CI), el build sigue", async () => {
+    await expect(cargarConfig({ VERCEL_ENV: "production", MERCADOPAGO_WEBHOOK_SECRET: "x" })).resolves.toBeDefined();
+    await expect(cargarConfig({ VERCEL_ENV: "preview", MERCADOPAGO_WEBHOOK_SECRET: "" })).resolves.toBeDefined();
   });
 });

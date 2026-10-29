@@ -77,7 +77,7 @@ describe("webhook de MercadoPago (route de Next)", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("en producción sin secreto rechaza todo (fail-closed)", async () => {
+  it("en producción sin secreto rechaza todo (fail-closed) y avisa al back en vez de fallar en silencio (#7)", async () => {
     vi.stubEnv("MERCADOPAGO_WEBHOOK_SECRET", "");
     vi.stubEnv("NODE_ENV", "production");
     const { POST } = await import("./route");
@@ -85,6 +85,10 @@ describe("webhook de MercadoPago (route de Next)", () => {
     const response = await POST(notificacion({}));
 
     expect(response.status).toBe(500);
-    expect(fetchMock).not.toHaveBeenCalled();
+    const urls = fetchMock.mock.calls.map(([url]) => String(url));
+    expect(urls.some((u) => u.includes("/MercadoPago/webhook"))).toBe(false);
+    const alerta = fetchMock.mock.calls.find(([url]) => String(url).endsWith("/Alertas/front"));
+    expect(alerta).toBeDefined();
+    expect(JSON.parse(alerta![1].body).mensaje).toContain("MERCADOPAGO_WEBHOOK_SECRET");
   });
 });
