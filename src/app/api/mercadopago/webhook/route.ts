@@ -65,6 +65,13 @@ export async function POST(req: NextRequest) {
 
   if (MP_WEBHOOK_SECRET && !isValidSignature(req, dataId, MP_WEBHOOK_SECRET)) {
     console.warn("[MP Webhook] Firma inválida — request rechazado");
+    // #7: acá se corta antes del back, así que su alerta de firma rechazada nunca sale.
+    await reportarError(
+      "servidor",
+      `Webhook de MP con firma inválida (data.id=${dataId}). Uno suelto puede ser alguien probando el endpoint; ` +
+        "si se repite, MERCADOPAGO_WEBHOOK_SECRET de Vercel no es el secreto del panel de MP y los pagos no se registran.",
+      { url: "/api/mercadopago/webhook" },
+    );
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

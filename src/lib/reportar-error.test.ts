@@ -36,6 +36,17 @@ describe("reportar errores al back (#7)", () => {
     expect(enviado().cuerpo.origen).toBe("navegador");
   });
 
+  it("el servidor se identifica con el secreto compartido; el navegador no lo tiene ni lo manda", async () => {
+    vi.stubEnv("BACKEND_PROXY_SECRET", "secreto-compartido");
+    await reportarError("servidor", new Error("boom"));
+    await reportarError("navegador", new Error("boom"));
+    vi.unstubAllEnvs();
+
+    const [servidor, navegador] = fetchMock.mock.calls.map(([, init]) => init.headers);
+    expect(servidor["x-wave-reporte-servidor"]).toBe("secreto-compartido");
+    expect(navegador).not.toHaveProperty("x-wave-reporte-servidor");
+  });
+
   it("no manda la query de la URL (puede traer el token de reset de contraseña)", async () => {
     await reportarError("navegador", new Error("boom"), { url: "/reset-password?token=secreto" });
 

@@ -47,10 +47,12 @@ src/
     jwt.ts        → decodificación JWT sin validación de firma (sólo client-side, para la UI)
     sesion.ts     → verificarSesion(): firma HS256, vencimiento, issuer y audience (server-side)
     auth-cookie.ts → nombre y opciones de la cookie auth-token (única definición)
-    backend.ts    → BACKEND_API_BASE para código server-side (route handlers, server components, sitemap)
+    backend.ts    → BACKEND_API_BASE para código server-side (route handlers, server components, sitemap) y API_PROXY_BASE (/api/backend) para el navegador
+    reportar-error.ts → reportarError(): manda los errores no manejados al back (POST /api/Alertas/front), que avisa al admin por mail (#7)
     colorMap.ts   → mapeo de nombres de colores a valores hex
   context/        → CartContext (localStorage), CompareContext (memoria)
   store/          → useAuthStore (Zustand)
+  instrumentation.ts → onRequestError: reporta los errores del servidor de Next con reportarError (#7)
   proxy.ts        → protección de rutas por JWT y rol (ex middleware.ts; Next 16 renombró la convención). Va en src/ (no en la raíz): con src/app, Next lo ignora en la raíz. No confundir con el proxy /api/backend
 ```
 

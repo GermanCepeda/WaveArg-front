@@ -65,7 +65,7 @@ describe("webhook de MercadoPago (route de Next)", () => {
     const response = await POST(notificacion({ "x-signature": `ts=1700000000000,v1=${v1}` }));
 
     expect(response.status).toBe(401);
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/MercadoPago/webhook"))).toBe(false);
   });
 
   it("rechaza una firma inválida sin llamar al backend", async () => {
@@ -74,7 +74,16 @@ describe("webhook de MercadoPago (route de Next)", () => {
     const response = await POST(notificacion({ "x-signature": firmar("123", "req-1", "1", "otro"), "x-request-id": "req-1" }));
 
     expect(response.status).toBe(401);
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/MercadoPago/webhook"))).toBe(false);
+  });
+
+  it("una firma inválida avisa al back: si se repite, el secreto de Vercel no es el del panel de MP (#7)", async () => {
+    const { POST } = await import("./route");
+
+    await POST(notificacion({ "x-signature": firmar("123", "req-1", "1", "otro"), "x-request-id": "req-1" }));
+
+    const alerta = fetchMock.mock.calls.find(([url]) => String(url).endsWith("/Alertas/front"));
+    expect(JSON.parse(alerta![1].body).mensaje).toContain("MERCADOPAGO_WEBHOOK_SECRET");
   });
 
   it("en producción sin secreto rechaza todo (fail-closed) y avisa al back en vez de fallar en silencio (#7)", async () => {

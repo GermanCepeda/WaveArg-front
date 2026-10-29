@@ -2,7 +2,11 @@ import { API_PROXY_BASE, BACKEND_API_BASE } from "@/lib/backend";
 
 // #7: el front no tiene mail propio. Sus errores no manejados van al back (POST /api/Alertas/front),
 // que avisa al admin con un tope de un mail cada 15 min. Desde el servidor de Next se llama directo al
-// back; desde el navegador, por el proxy /api/backend.
+// back; desde el navegador, por el proxy /api/backend. No usa fetchFromApi (lib/api.ts) a propósito:
+// reportar no puede tirar, desloguear ante un 401 ni quedarse colgado.
+//
+// El servidor se identifica con BACKEND_PROXY_SECRET en x-wave-reporte-servidor (el proxy no reenvía
+// ese header): sin él, el back trata el reporte como del navegador.
 export type OrigenDelError = "servidor" | "navegador";
 
 const TIMEOUT_MS = 5_000;
@@ -20,10 +24,13 @@ export async function reportarError(
   { url, digest }: { url?: string; digest?: string } = {},
 ): Promise<void> {
   const base = origen === "servidor" ? BACKEND_API_BASE : API_PROXY_BASE;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const secreto = process.env.BACKEND_PROXY_SECRET;
+  if (origen === "servidor" && secreto) headers["x-wave-reporte-servidor"] = secreto;
   try {
     await fetch(`${base}/Alertas/front`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       // Sin la query: /reset-password?token=... no puede terminar en un mail.
       body: JSON.stringify({ origen, mensaje: mensajeDe(error), url: url?.split("?")[0], digest }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
