@@ -2,6 +2,15 @@ import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV === "development";
 
+// #7: en el deploy de producción de Vercel, sin el secreto el webhook de MP respondería 500 a todo
+// (fail-closed) y los pagos no se registrarían. Falla el build: Vercel avisa y sigue sirviendo el
+// deploy anterior. Los previews y el CI no lo necesitan.
+if (process.env.VERCEL_ENV === "production" && !process.env.MERCADOPAGO_WEBHOOK_SECRET) {
+  throw new Error(
+    "Falta MERCADOPAGO_WEBHOOK_SECRET en las variables de Production de Vercel: sin él, el webhook de MercadoPago rechaza todos los pagos.",
+  );
+}
+
 // CSP (#17). Scripts: los propios de Next (inline, sin nonce para no volver dinámicas todas
 // las páginas) y Google Identity Services. Imágenes y videos: cualquier https, porque las
 // fotos de productos son URLs cargadas desde el admin. MercadoPago no necesita nada: el pago

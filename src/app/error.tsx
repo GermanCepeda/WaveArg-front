@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { reportarError } from "@/lib/reportar-error";
 import Link from "next/link";
 
 export default function GlobalError({
@@ -12,6 +13,8 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error(error);
+    // Con digest, el error vino del servidor y ya lo reportó instrumentation.ts (#7).
+    if (!error.digest) reportarError("navegador", error, { url: window.location.pathname });
   }, [error]);
 
   return (

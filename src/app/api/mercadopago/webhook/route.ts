@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
 import { BACKEND_API_BASE } from "@/lib/backend";
+import { reportarError } from "@/lib/reportar-error";
 
 const MP_WEBHOOK_SECRET = process.env.MERCADOPAGO_WEBHOOK_SECRET;
 const isProduction = process.env.NODE_ENV === "production";
@@ -44,6 +45,14 @@ function isValidSignature(req: NextRequest, dataId: string, secret: string): boo
 export async function POST(req: NextRequest) {
   if (!MP_WEBHOOK_SECRET && isProduction) {
     console.error("[MP Webhook] MERCADOPAGO_WEBHOOK_SECRET no configurado");
+    // #7: no tendría que pasar (el build de producción falla sin el secreto, ver next.config.ts), pero
+    // si pasa, los pagos no se registran: que le llegue al admin y no sólo al log de Vercel.
+    await reportarError(
+      "servidor",
+      "MERCADOPAGO_WEBHOOK_SECRET no está configurado en Vercel: el webhook de MP responde 500 a todo y los pagos no se registran. " +
+        "Cargarlo en Settings → Environment Variables, redeployar y reprocesar los pagos afectados (docs/alertas.md del back).",
+      { url: "/api/mercadopago/webhook" },
+    );
     return NextResponse.json(
       { error: "Webhook secret not configured" },
       { status: 500 }
@@ -56,6 +65,13 @@ export async function POST(req: NextRequest) {
 
   if (MP_WEBHOOK_SECRET && !isValidSignature(req, dataId, MP_WEBHOOK_SECRET)) {
     console.warn("[MP Webhook] Firma inválida — request rechazado");
+    // #7: acá se corta antes del back, así que su alerta de firma rechazada nunca sale.
+    await reportarError(
+      "servidor",
+      `Webhook de MP con firma inválida (data.id=${dataId}). Uno suelto puede ser alguien probando el endpoint; ` +
+        "si se repite, MERCADOPAGO_WEBHOOK_SECRET de Vercel no es el secreto del panel de MP y los pagos no se registran.",
+      { url: "/api/mercadopago/webhook" },
+    );
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
