@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import type { Producto } from "@/interfaces/producto";
 import ProductDetailContent from "./ProductDetailContent";
 
 import { BACKEND_API_BASE } from "@/lib/backend";
+import { idDeRuta } from "@/lib/id-ruta";
 
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
-  const { id } = await params;
+  // #54: sin un id válido no se le pide nada al back.
+  const id = idDeRuta((await params).id);
+  if (id === null) return { title: "Producto | Wave ARG" };
   try {
     const res = await fetch(`${BACKEND_API_BASE}/Productos/${id}`, {
       next: { revalidate: 3600 },
@@ -35,10 +39,11 @@ export async function generateMetadata({
   }
 }
 
-export default function ProductDetailPage({
+export default async function ProductDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  if (idDeRuta((await params).id) === null) notFound();
   return <ProductDetailContent params={params} />;
 }

@@ -7,7 +7,7 @@ E-commerce de iPhones y accesorios para el mercado argentino. Frontend en Next.j
 - **Next.js 16.4** (Turbopack), React 19, TypeScript
 - **Tailwind CSS v4** (`@import "tailwindcss"`), Radix UI (también para dropdowns: no usar headlessui), Sonner (toasts), react-hook-form, framer-motion
 - **Auth**: JWT en cookie `auth-token`, Zustand, Google OAuth
-- **Tests**: Vitest (`npm test`), archivos `src/**/*.test.ts`. Cubren `lib/`, `schemas/` y `proxy.ts`
+- **Tests**: Vitest (`npm test`), archivos `src/**/*.test.ts`. Cubren `lib/`, `schemas/`, `proxy.ts`, los route handlers de `app/api/` y las páginas de detalle (`app/(public)/paginas-detalle.test.ts`)
 - **API**: `src/lib/api.ts` — todos los servicios pasan por `fetchFromApi()` → proxy `/api/backend`
 - **Backend**: .NET, producción en `https://waveargdefinitivo.onrender.com/api`, dev en `http://localhost:5075/api`
 - **Hosting**: Frontend → Vercel (`https://wavearg-front.vercel.app`), Backend → Render
@@ -49,6 +49,7 @@ src/
     auth-cookie.ts → nombre y opciones de la cookie auth-token (única definición)
     backend.ts    → BACKEND_API_BASE para código server-side (route handlers, server components, sitemap) y API_PROXY_BASE (/api/backend) para el navegador
     reportar-error.ts → reportarError(): manda los errores no manejados al back (POST /api/Alertas/front), que avisa al admin por mail (#7)
+    id-ruta.ts    → idDeRuta(): id de una ruta dinámica (entero positivo Int32) o null; las páginas de detalle responden 404 sin llamar al back (#54)
     colorMap.ts   → mapeo de nombres de colores a valores hex
   context/        → CartContext (localStorage), CompareContext (memoria)
   store/          → useAuthStore (Zustand)
