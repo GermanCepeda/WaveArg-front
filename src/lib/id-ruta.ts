@@ -1,6 +1,6 @@
-// #54: el id de /products/[id] y /accesorios/[id] llega decodificado ("..%2f" es "../") y las páginas lo usan
-// para pedirle el producto al back desde el servidor. Sólo un entero positivo que entra en el int del back
-// (Int32) puede ser un id; cualquier otra cosa es null y la página responde 404 sin llamar al back.
+// #54: id de una ruta dinámica que se usa para armar una URL del back. Next lo entrega decodificado ("..%2f" es
+// "../"), así que antes de usarlo tiene que ser un entero positivo que entre en el int del back (Int32);
+// cualquier otra cosa es null y quien lo usa responde 404 sin llamar al back.
 const MAX_INT32 = 2_147_483_647;
 
 export function idDeRuta(valor: string): number | null {

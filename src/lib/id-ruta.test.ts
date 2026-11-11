@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { idDeRuta } from "./id-ruta";
 
-// #54: las páginas de detalle arman la URL del back con el id de la ruta, que Next entrega decodificado.
-// Sólo un entero positivo que entra en el int del back puede llegar a esa URL.
+// #54
 describe("idDeRuta", () => {
   it.each([
     ["1", 1],
