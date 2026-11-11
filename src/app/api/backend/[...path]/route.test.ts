@@ -53,6 +53,31 @@ describe("proxy /api/backend", () => {
     expect(fetchMock.mock.calls[0][1].signal).toBeUndefined();
   });
 
+  // #46 (P-02 del pentest): Next entrega los segmentos ya decodificados, así que "..%2f..%2fswagger" llega como
+  // un solo segmento "../../swagger" y new URL lo resolvería fuera de /api.
+  it.each([
+    [["..", "swagger", "index.html"]],
+    [["../../swagger/index.html"]],
+    [["Productos", "..", "..", "swagger"]],
+    [[".", "Productos"]],
+    [["..\\..\\swagger"]],
+  ])("no sale de la base del back: %j responde 400 sin llamarlo", async (segmentos) => {
+    const res = await GET(new NextRequest(new URL("/api/backend/x", "http://localhost:3000")), {
+      params: Promise.resolve({ path: segmentos }),
+    });
+
+    expect(res.status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("una ruta anidada normal sigue llegando al back", async () => {
+    fetchMock.mockResolvedValue(Response.json([], { status: 200 }));
+
+    await pedir("Pedidos/mis-pedidos");
+
+    expect(String(fetchMock.mock.calls[0][0])).toMatch(/\/api\/Pedidos\/mis-pedidos$/);
+  });
+
   it("si el back responde, pasa el status y el cuerpo tal cual", async () => {
     fetchMock.mockResolvedValue(Response.json([{ id: 2 }], { status: 200 }));
 
