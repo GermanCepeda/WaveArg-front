@@ -31,9 +31,28 @@ type RouteContext = {
   params: Promise<{ path: string[] }>;
 };
 
+// #46: Next entrega los segmentos ya decodificados ("..%2f" llega como "../") y new URL resuelve "." y "..",
+// también con "\" (en http vale como "/"). Un segmento así nunca es una ruta legítima de la API: se rechaza.
+// Además la URL final tiene que quedar dentro de la base del back: un doble encoding ("%252e%252e") llega como
+// "%2e%2e", pasa el filtro de segmentos y new URL lo resuelve igual como "..".
+const BASE_DEL_BACK = new URL(BACKEND_API_BASE);
+const PREFIJO_DEL_BACK = `${BASE_DEL_BACK.pathname.replace(/\/$/, "")}/`;
+
+function urlDelBack(path: string[]): URL | null {
+  const segmentoInvalido = (segmento: string) =>
+    segmento === "." || segmento === ".." || segmento.includes("/") || segmento.includes("\\");
+  if (path.some(segmentoInvalido)) return null;
+
+  const url = new URL(`${BACKEND_API_BASE}/${path.join("/")}`);
+  return url.origin === BASE_DEL_BACK.origin && url.pathname.startsWith(PREFIJO_DEL_BACK) ? url : null;
+}
+
 async function proxyRequest(req: NextRequest, context: RouteContext) {
   const { path } = await context.params;
-  const backendUrl = new URL(`${BACKEND_API_BASE}/${path.join("/")}`);
+  const backendUrl = urlDelBack(path);
+  if (!backendUrl) {
+    return NextResponse.json({ message: "Ruta inválida." }, { status: 400 });
+  }
   backendUrl.search = req.nextUrl.search;
 
   const headers = new Headers();

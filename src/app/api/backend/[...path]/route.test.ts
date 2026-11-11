@@ -4,10 +4,15 @@ import { GET, POST } from "./route";
 
 const fetchMock = vi.fn();
 
-function pedir(path: string) {
-  return GET(new NextRequest(new URL(`/api/backend/${path}`, "http://localhost:3000")), {
-    params: Promise.resolve({ path: path.split("/") }),
+// Los segmentos como los entrega Next al route handler: ya decodificados, así que pueden traer "/" adentro.
+function pedirSegmentos(segmentos: string[]) {
+  return GET(new NextRequest(new URL(`/api/backend/${segmentos.join("/")}`, "http://localhost:3000")), {
+    params: Promise.resolve({ path: segmentos }),
   });
+}
+
+function pedir(path: string) {
+  return pedirSegmentos(path.split("/"));
 }
 
 // Un back que nunca contesta: sólo termina si se aborta la request.
@@ -51,6 +56,30 @@ describe("proxy /api/backend", () => {
 
     expect(res.status).toBe(201);
     expect(fetchMock.mock.calls[0][1].signal).toBeUndefined();
+  });
+
+  // #46 (P-02 del pentest).
+  it.each([
+    [["..", "swagger", "index.html"]],
+    [["../../swagger/index.html"]],
+    [["Productos", "..", "..", "swagger"]],
+    [[".", "Productos"]],
+    [["..\\..\\swagger"]],
+    // Doble encoding: pasa el filtro de segmentos y lo corta la verificación de que la URL quede en la base.
+    [["%2e%2e", "swagger"]],
+  ])("no sale de la base del back: %j responde 400 sin llamarlo", async (segmentos) => {
+    const res = await pedirSegmentos(segmentos);
+
+    expect(res.status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("una ruta anidada normal sigue llegando al back", async () => {
+    fetchMock.mockResolvedValue(Response.json([], { status: 200 }));
+
+    await pedir("Pedidos/mis-pedidos");
+
+    expect(String(fetchMock.mock.calls[0][0])).toMatch(/\/api\/Pedidos\/mis-pedidos$/);
   });
 
   it("si el back responde, pasa el status y el cuerpo tal cual", async () => {
