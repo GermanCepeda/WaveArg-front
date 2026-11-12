@@ -92,7 +92,7 @@ export async function verificarSesion(token: string | undefined): Promise<Sesion
   return { id: p.id, email: typeof p.email === "string" ? p.email : "", rol: p.rol, exp: p.exp };
 }
 
-export function esAdmin(sesion: Sesion | null): boolean {
+export function esAdmin(sesion: Pick<Sesion, "rol"> | null): boolean {
   // Igual que en el cliente: el back sólo emite el rol "Admin" (Politicas.Admin).
   return sesion?.rol.toLowerCase() === "admin";
 }
