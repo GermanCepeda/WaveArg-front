@@ -33,7 +33,7 @@ describe("POST /api/auth/session", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("guarda la cookie si el back acepta el token", async () => {
-    fetchMock.mockResolvedValue(Response.json({ id: 42, rol: "Cliente" }));
+    fetchMock.mockResolvedValue(Response.json({ id: 42, email: "cliente@wave.local", rol: "Cliente" }));
 
     const response = await guardar(await tokenFirmado("Cliente"));
 

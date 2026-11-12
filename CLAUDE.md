@@ -7,7 +7,7 @@ E-commerce de iPhones y accesorios para el mercado argentino. Frontend en Next.j
 - **Next.js 16.4** (Turbopack), React 19, TypeScript
 - **Tailwind CSS v4** (`@import "tailwindcss"`), Radix UI (también para dropdowns: no usar headlessui), Sonner (toasts), react-hook-form, framer-motion
 - **Auth**: JWT en cookie `auth-token`, Zustand, Google OAuth
-- **Tests**: Vitest (`npm test`), archivos `src/**/*.test.ts`. Cubren `lib/`, `schemas/`, `proxy.ts`, los route handlers de `app/api/` y las páginas de detalle (`app/(public)/paginas-detalle.test.ts`)
+- **Tests**: Vitest (`npm test`), archivos `src/**/*.test.ts`. Cubren `lib/`, `schemas/`, `proxy.ts`, los route handlers de `app/api/`, las páginas de detalle (`app/(public)/paginas-detalle.test.ts`), el layout de `/admin` y `useAuthStore`
 - **API**: `src/lib/api.ts` — todos los servicios pasan por `fetchFromApi()` → proxy `/api/backend`
 - **Backend**: .NET, producción en `https://waveargdefinitivo.onrender.com/api`, dev en `http://localhost:5075/api`
 - **Hosting**: Frontend → Vercel (`https://wavearg-front.vercel.app`), Backend → Render
@@ -33,6 +33,7 @@ src/
       types/product.ts
     api/
       auth/session/         → POST/DELETE para manejar cookie auth-token (httpOnly)
+      auth/salir/           → GET: borra la cookie y redirige a /login (lo usa el layout de /admin si el back rechaza el token)
       backend/[...path]/    → proxy universal hacia el backend .NET
       mercadopago/webhook/  → webhook MP con validación HMAC implementada ✅
   components/
@@ -46,8 +47,9 @@ src/
     api.ts        → todos los servicios y DTOs de la API
     jwt.ts        → decodificación JWT sin validación de firma (sólo client-side, para la UI)
     sesion.ts     → verificarSesion(): firma HS256, vencimiento, issuer y audience (server-side)
+    sesion-back.ts → confirmarSesionConBack(): GET /api/Auth/sesion; null si el back rechaza el token, lanza si no responde (#49)
     auth-cookie.ts → nombre y opciones de la cookie auth-token (única definición)
-    backend.ts    → BACKEND_API_BASE para código server-side (route handlers, server components, sitemap) y API_PROXY_BASE (/api/backend) para el navegador
+    backend.ts    → BACKEND_API_BASE para código server-side (route handlers, server components, sitemap), API_PROXY_BASE (/api/backend) para el navegador y backendTimeoutMs()
     reportar-error.ts → reportarError(): manda los errores no manejados al back (POST /api/Alertas/front), que avisa al admin por mail (#7)
     id-ruta.ts    → idDeRuta(): id de una ruta dinámica (entero positivo Int32) o null; las páginas de detalle responden 404 sin llamar al back (#54)
     colorMap.ts   → mapeo de nombres de colores a valores hex
@@ -59,7 +61,9 @@ src/
 
 ## Autenticación y autorización
 - `src/proxy.ts` verifica la firma del JWT (`lib/sesion.ts`, con `JWT_SECRET`), maneja redirecciones y protege rutas por rol (primera capa)
-- `app/admin/layout.tsx` hace una segunda validación server-side (segunda capa) antes de renderizar el panel
+- `app/admin/layout.tsx` hace una segunda validación server-side (segunda capa) antes de renderizar el panel: además de la firma, le confirma la sesión al back (`lib/sesion-back.ts`), que sabe si el usuario existe, si la contraseña cambió y el rol vigente (#49). Si el back rechaza el token, redirige a `/api/auth/salir`; si no responde, el panel no se muestra
+- `POST /api/auth/session` tampoco guarda un token que el back rechaza (400); si el back no responde, devuelve 503 y el login muestra "probá de nuevo"
+- La firma sola no alcanza: con la `Jwt:Key` filtrada se firma cualquier token. `proxy.ts` no consulta al back porque corre en cada request
 - El token vive **solo en la cookie** `auth-token` (httpOnly). Zustand persiste `user` e `isLoggedIn` en localStorage, pero **nunca el token** — la cookie es la única fuente de verdad para `fetchFromApi` y `proxy.ts`
 - Rutas públicas: `/`, `/login`, `/register`, `/products`, `/accesorios`, `/creadores`, `/nosotros`, `/contacto`, `/compare`
 - Rutas protegidas: `/account`, `/admin`, `/cart`, `/checkout`
@@ -88,7 +92,7 @@ INTERNAL_API_BASE              # Opcional: URL del backend solo para el servidor
 NEXT_PUBLIC_API_PROXY_BASE     # Opcional: base que usa el cliente (default /api/backend)
 BACKEND_PROXY_SECRET           # Secreto compartido con el backend (Proxy__ClientIpSecret) para reenviar la IP del cliente
 JWT_SECRET                     # Misma clave que Jwt__Key del backend: proxy.ts y layout de admin verifican la firma del token
-BACKEND_TIMEOUT_MS             # Opcional: timeout del proxy /api/backend en ms (default 30000); vencido responde 504
+BACKEND_TIMEOUT_MS             # Opcional: timeout del proxy /api/backend (vencido responde 504) y de la confirmación de sesión con el back, en ms (default 30000)
 NEXT_PUBLIC_SITE_URL           # URL pública del frontend (para MercadoPago back_urls)
 NEXT_PUBLIC_GOOGLE_CLIENT_ID
 MERCADOPAGO_WEBHOOK_SECRET     # Para validar firma HMAC del webhook (producción)

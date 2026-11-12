@@ -30,12 +30,13 @@ export default async function AdminLayout({
   const delBack = await confirmarSesionConBack(token);
 
   if (!delBack) {
-    redirect("/login");
+    // No a /login directo: la cookie seguiría viva y proxy.ts rebotaría a /account/profile.
+    redirect("/api/auth/salir");
   }
 
   if (!esAdmin(delBack)) {
     redirect("/account/profile");
   }
 
-  return <AdminShell sesion={{ email: sesion.email, rol: delBack.rol }}>{children}</AdminShell>;
+  return <AdminShell sesion={{ email: delBack.email, rol: delBack.rol }}>{children}</AdminShell>;
 }

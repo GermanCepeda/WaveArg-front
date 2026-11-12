@@ -36,22 +36,23 @@ describe("layout de /admin", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("renderiza si el back confirma que la sesión es de un admin", async () => {
-    fetchMock.mockResolvedValue(Response.json({ id: 42, rol: "Admin" }));
+    fetchMock.mockResolvedValue(Response.json({ id: 42, email: "admin@wave.local", rol: "Admin" }));
 
     const elemento = await renderizar();
 
-    expect(elemento.props.sesion).toEqual({ email: "cliente@wave.local", rol: "Admin" });
+    expect(elemento.props.sesion).toEqual({ email: "admin@wave.local", rol: "Admin" });
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
-  it("manda a /login si el back rechaza un token con firma válida", async () => {
+  // A /login no alcanza: la cookie sigue ahí con firma válida y proxy.ts manda /login a /account/profile.
+  it("si el back rechaza un token con firma válida, manda a borrar la cookie", async () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 401 }));
 
-    await expect(renderizar()).rejects.toThrow("REDIRECT /login");
+    await expect(renderizar()).rejects.toThrow("REDIRECT /api/auth/salir");
   });
 
   it("manda a /account/profile si el token dice Admin pero el back dice Cliente", async () => {
-    fetchMock.mockResolvedValue(Response.json({ id: 42, rol: "Cliente" }));
+    fetchMock.mockResolvedValue(Response.json({ id: 42, email: "admin@wave.local", rol: "Cliente" }));
 
     await expect(renderizar()).rejects.toThrow("REDIRECT /account/profile");
   });

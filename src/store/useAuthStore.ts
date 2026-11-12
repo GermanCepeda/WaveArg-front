@@ -26,7 +26,9 @@ export const useAuthStore = create<AuthState>()(
         });
 
         if (!response.ok) {
-          throw new Error("No se pudo iniciar la sesion.");
+          // #49: 503 es que no se pudo confirmar la sesión con el back; su mensaje pide reintentar.
+          const { error } = (await response.json().catch(() => ({}))) as { error?: string };
+          throw new Error(response.status === 503 && error ? error : "No se pudo iniciar la sesion.");
         }
 
         set({ token, user, isLoggedIn: true });

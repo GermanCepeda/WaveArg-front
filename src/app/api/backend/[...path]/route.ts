@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AUTH_COOKIE_NAME } from "@/lib/auth-cookie";
-import { BACKEND_API_BASE } from "@/lib/backend";
+import { BACKEND_API_BASE, backendTimeoutMs } from "@/lib/backend";
 
 // El backend ve todas las requests de este proxy con la IP de Vercel. Para que su rate limit
 // distinga usuarios, le pasamos la IP del navegador junto con un secreto compartido
@@ -16,16 +16,9 @@ function getClientIp(req: NextRequest): string | null {
   );
 }
 
-// Cuánto espera el proxy a que el back empiece a responder antes de cortar con 504
-// (BACKEND_TIMEOUT_MS). 30 s por defecto: en Render free el back puede tardar en despertar.
-// Sólo para GET/HEAD: cortar un POST/PUT no frena al back, que puede terminar de crear el pedido
-// o la preferencia; un 504 invitaría a reintentar y duplicarlo.
-const TIMEOUT_POR_DEFECTO_MS = 30_000;
-
-function timeoutMs(): number {
-  const valor = Number(process.env.BACKEND_TIMEOUT_MS);
-  return Number.isFinite(valor) && valor > 0 ? valor : TIMEOUT_POR_DEFECTO_MS;
-}
+// Pasado backendTimeoutMs() sin respuesta del back, el proxy corta con 504. Sólo para GET/HEAD:
+// cortar un POST/PUT no frena al back, que puede terminar de crear el pedido o la preferencia; un
+// 504 invitaría a reintentar y duplicarlo.
 
 type RouteContext = {
   params: Promise<{ path: string[] }>;
@@ -82,7 +75,7 @@ async function proxyRequest(req: NextRequest, context: RouteContext) {
   // El timeout cubre hasta que llegan los headers; el cuerpo se sigue transmitiendo sin límite.
   const idempotente = req.method === "GET" || req.method === "HEAD";
   const controller = new AbortController();
-  const timer = idempotente ? setTimeout(() => controller.abort(), timeoutMs()) : undefined;
+  const timer = idempotente ? setTimeout(() => controller.abort(), backendTimeoutMs()) : undefined;
   let backendResponse: Response;
   try {
     backendResponse = await fetch(backendUrl, {

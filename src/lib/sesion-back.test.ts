@@ -14,9 +14,9 @@ describe("confirmarSesionConBack", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("le pasa el token a GET /Auth/sesion y devuelve el rol vigente", async () => {
-    fetchMock.mockResolvedValue(Response.json({ id: 42, rol: "Admin" }));
+    fetchMock.mockResolvedValue(Response.json({ id: 42, email: "admin@wave.local", rol: "Admin" }));
 
-    expect(await confirmarSesionConBack("el-token")).toEqual({ id: 42, rol: "Admin" });
+    expect(await confirmarSesionConBack("el-token")).toEqual({ id: 42, email: "admin@wave.local", rol: "Admin" });
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toMatch(/\/Auth\/sesion$/);
