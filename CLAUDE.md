@@ -142,12 +142,12 @@ MERCADOPAGO_WEBHOOK_SECRET     # Para validar firma HMAC del webhook (producció
 
 ### Issue tracker
 
-GitHub Issues de `MarcosGP20/WaveArg-front` (los que tocan back y front van en `MarcosGP20/WAVEARGDEFINITIVO`), con `gh`. See `docs/agents/issue-tracker.md`.
+GitHub Issues del fork `GermanCepeda/WAVEARGDEFINITIVO-1`: ahí van juntos los tickets del back y del front, y los que tocan sólo el front llevan `Front:` al principio del título. Usá `gh` con `--repo GermanCepeda/WAVEARGDEFINITIVO-1`; en los repos de `MarcosGP20` no se crean ni se editan issues. See `docs/agents/issue-tracker.md` en el repo del back.
 
 ### Triage labels
 
-Las cinco etiquetas por defecto: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+Las cinco etiquetas por defecto: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md` en el repo del back.
 
 ### Domain docs
 
-Single-context: `GLOSSARY.md` y `docs/adr/` en la raíz del repo. See `docs/agents/domain.md`.
+Single-context: `GLOSSARY.md` y `docs/adr/` en la raíz del repo del back. See `docs/agents/domain.md` en el repo del back.
